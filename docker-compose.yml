@@ -1,0 +1,8 @@
+services:
+  app:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ADDRESS=34.224.191.55
+      - CONTRACT_HASH=fb8e0215c040691e9bbe945dd22a00989b532b9c2521582538edb95b61156698
