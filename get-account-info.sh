@@ -27,6 +27,10 @@ ensure_has_installed () {
   fi
 }
 
+is_valid_json() {
+  echo "$1" | jq . > /dev/null 2>&1
+}
+
 ensure_has_installed "casper-client"
 ensure_has_installed "curl"
 ensure_has_installed "jq"
@@ -54,45 +58,40 @@ if [ -z ${NODE_ADDRESS+x} ]; then NODE_ADDRESS=34.224.191.55; fi
 if [ -z ${CONTRACT_HASH+x} ]; then CONTRACT_HASH=fb8e0215c040691e9bbe945dd22a00989b532b9c2521582538edb95b61156698; fi
 if [ -z ${PUBLIC_KEY+x} ]; then print_usage; exit 1; fi
 
-STATE_ROOT_HASH=$(casper-client get-state-root-hash --node-address http://$NODE_ADDRESS:7777 | jq -r '.result | .state_root_hash' 2>&1)
-if [[ $? -ne 0 ]]; then
-  echo "Error fetching state root hash: $STATE_ROOT_HASH"
+STATE_ROOT_HASH_JSON=$(casper-client get-state-root-hash --node-address http://$NODE_ADDRESS:7777 2>&1)
+if ! is_valid_json "$STATE_ROOT_HASH_JSON"; then
+  echo "False"
   exit 1
 fi
+STATE_ROOT_HASH=$(echo "$STATE_ROOT_HASH_JSON" | jq -r '.result | .state_root_hash')
 
-ACCOUNT_INFO_URLS_DICT_UREF=$(casper-client query-state \
+ACCOUNT_INFO_URLS_DICT_UREF_JSON=$(casper-client query-state \
   --node-address http://$NODE_ADDRESS:7777 \
   --state-root-hash "$STATE_ROOT_HASH" \
-  --key "hash-$CONTRACT_HASH" \
-| jq -rc '.result | .stored_value | .Contract | .named_keys | map(select(.name | contains("account-info-urls"))) | .[] .key' 2>&1)
-if [[ $? -ne 0 ]]; then
-  echo "Error fetching account info URLs dictionary UREF: $ACCOUNT_INFO_URLS_DICT_UREF"
+  --key "hash-$CONTRACT_HASH" 2>&1)
+if ! is_valid_json "$ACCOUNT_INFO_URLS_DICT_UREF_JSON"; then
+  echo "False"
   exit 1
 fi
+ACCOUNT_INFO_URLS_DICT_UREF=$(echo "$ACCOUNT_INFO_URLS_DICT_UREF_JSON" | jq -rc '.result | .stored_value | .Contract | .named_keys | map(select(.name | contains("account-info-urls"))) | .[] .key')
 
 ACCOUNT_HASH=$(casper-client account-address --public-key $PUBLIC_KEY | sed -r 's/account-hash-//g')
 ACCOUNT_HASH_LOWERCASED=$(echo $ACCOUNT_HASH | tr '[:upper:]' '[:lower:]')
 
-BASE_URL=$(casper-client get-dictionary-item \
+BASE_URL_JSON=$(casper-client get-dictionary-item \
   --node-address http://$NODE_ADDRESS:7777 \
   --state-root-hash "$STATE_ROOT_HASH" \
   --seed-uref  "$ACCOUNT_INFO_URLS_DICT_UREF" \
-  --dictionary-item-key "$ACCOUNT_HASH_LOWERCASED" \
-| jq -r '.result | .stored_value | .CLValue | .parsed' 2>&1)
-if [[ $? -ne 0 ]]; then
-  echo "Error fetching base URL: $BASE_URL"
+  --dictionary-item-key "$ACCOUNT_HASH_LOWERCASED" 2>&1)
+if ! is_valid_json "$BASE_URL_JSON"; then
+  echo "False"
+  exit 1
+fi
+BASE_URL=$(echo "$BASE_URL_JSON" | jq -r '.result | .stored_value | .CLValue | .parsed')
+
+if [[ "$BASE_URL" == "null" ]]; then
+  echo "False"
   exit 1
 fi
 
-CHAIN_NAME=$(curl -s http://$NODE_ADDRESS:8888/status | jq -r '.chainspec_name' 2>&1)
-if [[ $? -ne 0 ]]; then
-  echo "Error fetching chain name: $CHAIN_NAME"
-  exit 1
-fi
-
-if [ "$BASE_URL" = "null" ]; then
-  echo "Account information URL is not set for the given public key on the $CHAIN_NAME network"
-  exit 0
-else
-  curl -s "$BASE_URL/.well-known/casper/account-info.$CHAIN_NAME.json"
-fi
+echo "$BASE_URL"

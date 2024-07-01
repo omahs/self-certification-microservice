@@ -14,10 +14,10 @@ def is_certified():
         return jsonify({'error': 'Public key is required'}), 400
 
     result, error = query_contract(public_key, NODE_ADDRESS, CONTRACT_HASH)
-    if error:
+    if error or result == "False" or result == "null" or result is None:
         return jsonify({'status': 'not-certified'})
     else:
-        return jsonify({'status': 'certified'})
+        return jsonify({'status': result})
 
 def query_contract(public_key, node_address, contract_hash):
     script_path = './get-account-info.sh'
@@ -30,7 +30,7 @@ def query_contract(public_key, node_address, contract_hash):
     
     try:
         result = subprocess.run(command, capture_output=True, text=True, check=True)
-        return result.stdout, None
+        return result.stdout.strip(), None
     except subprocess.CalledProcessError as e:
         return None, e.stderr
 
