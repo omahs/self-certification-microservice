@@ -10,5 +10,4 @@ COPY --from=casper-builder /usr/local/cargo/bin/casper-client /usr/local/bin/cas
 COPY . /app
 RUN pip install --no-cache-dir -r requirements.txt
 RUN apt-get update && apt-get install -y curl jq sed
-EXPOSE 4000
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:4000", "wsgi:app"]

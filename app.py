@@ -35,4 +35,4 @@ def query_contract(public_key, node_address, contract_hash):
         return None, e.stderr
 
 if __name__ == '__main__':
-    app.run(debug=True, port=4000, host='0.0.0.0')
+    app.run()
