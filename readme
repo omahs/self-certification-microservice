@@ -1,4 +1,4 @@
-This is a micreservice that will be called every time when someone visits project page on CEIO. It uses the script from MAKE Casper Account Info Standard to verify if given public key was verified on the blokchain.
+This is a micreservice that will be called every time when someone visits project page on CEIO. It uses modified version of the script from MAKE Casper Account Info Standard to verify if given public key was verified on the blokchain.
 
 ### Env Variables
 
