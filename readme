@@ -1,1 +1,6 @@
 This is a micreservice that will be called every time when someone visits project page on CEIO. It uses the script from MAKE Casper Account Info Standard to verify if given public key was verified on the blokchain.
+
+### Env Variables
+
+- NODE_ADDRESS : The validator node that script will use to query for the contract.
+- CONTRACT_HASH : Should be the current contract hash for Casper Account Info Standard. Current hash was taken from here: https://cspr.live/contract-package/fced7072e4b52f8f4841667cfc0a7d92c93b01ffc0717d5cd80f49546bd7febb.
